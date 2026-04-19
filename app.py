@@ -214,11 +214,11 @@ def calculate_risk(stroke_pred: str, stroke_type: str, num_clots: int, total_are
     """Calculates risk level based on the number of clots and baseline parameters. Returns (Level, Score)."""
     # User requested clot-based risk rules:
     if num_clots > 3:
-        return "High / Very Serious", 3
+        return "High", 3
     elif num_clots >= 2 and num_clots <= 3:
-        return "Moderate to High", 2
+        return "Moderate", 2
     elif num_clots == 1:
-        return "Low to Moderate", 1
+        return "Low", 1
         
     # Fallback if 0 clots are detected
     if stroke_type == "Hemorrhagic" or total_area > 2000:
@@ -229,47 +229,6 @@ def calculate_risk(stroke_pred: str, stroke_type: str, num_clots: int, total_are
     return "Low", 1
 
 # -----------------------------------------------------------------------------
-# Data Analysis Report UI
-# -----------------------------------------------------------------------------
-def show_data_analysis_report():
-    st.title("📊 Data Analysis & Model Performance Report")
-    st.markdown("Overview of the medical dataset distribution and trained models performance.")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Dataset: Normal vs Stroke")
-        data1 = pd.DataFrame({
-            "Class": ["Normal", "Stroke"],
-            "Count": [1240, 1860]
-        }).set_index("Class")
-        st.bar_chart(data1)
-        
-    with col2:
-        st.subheader("Dataset: Stroke Types")
-        data2 = pd.DataFrame({
-            "Type": ["Ischemic", "Hemorrhagic"],
-            "Count": [1420, 440]
-        }).set_index("Type")
-        st.bar_chart(data2)
-        
-    st.markdown("---")
-    
-    st.subheader("Model Validation Accuracy Over Training Epochs")
-    epochs = pd.DataFrame({
-        "Stroke Classifier (%)": [52.1, 64.3, 71.0, 74.5, 78.2, 82.1, 85.4, 87.2, 89.0, 91.5],
-        "Type Classifier (%)": [48.0, 56.5, 63.8, 69.2, 72.4, 76.8, 79.1, 81.5, 83.2, 85.8]
-    }, index=range(1, 11))
-    st.line_chart(epochs)
-    
-    st.subheader("Segmentation Dice Score vs. Confidence Threshold")
-    dice = pd.DataFrame({
-        "Threshold": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
-        "Dice Score": [0.65, 0.71, 0.77, 0.74, 0.68, 0.55]
-    }).set_index("Threshold")
-    st.bar_chart(dice)
-
-# -----------------------------------------------------------------------------
 # Main Application UI
 # -----------------------------------------------------------------------------
 def main():
@@ -278,13 +237,7 @@ def main():
 
     st.sidebar.header("Controls")
     uploaded_file = st.sidebar.file_uploader("Upload CT Scan (.jpg, .png, .dcm)", type=["jpg", "jpeg", "png"])
-
     confidence_threshold = st.sidebar.slider("Detection Confidence Threshold", 0.0, 1.0, 0.5, 0.01)
-
-    st.sidebar.markdown("---")
-    if st.sidebar.button("📊 View Model Data Analysis"):
-        show_data_analysis_report()
-        return
 
     if uploaded_file is not None:
         # Load Image
@@ -401,7 +354,7 @@ def main():
             st.markdown(f"""
             <div class="metric-card" style="border: 2px solid {border_color};">
                 <div class="metric-label">Risk Prediction Level</div>
-                <div class="{r_color}" style="font-size: 32px;">{risk_level.upper()} (MARK: {risk_score})</div>
+                <div class="{r_color}" style="font-size: 32px;">{risk_level.upper()}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -424,6 +377,34 @@ def main():
                 st.bar_chart(chart_data)
                 
             st.markdown("---")
+            
+        # --- BAR CHART FOR RISK ANALYSIS ---
+        st.subheader("📈 Risk Level Analysis (Bar Chart)")
+        
+        fig2, ax2 = plt.subplots(figsize=(6, 3))
+        
+        if risk_score == 3:
+            bar_color = '#ff4b4b'
+        elif risk_score == 2:
+            bar_color = '#ffa421'
+        else:
+            bar_color = '#008f51'
+            
+        ax2.bar(['Risk Level'], [risk_score], color=bar_color, width=0.3)
+        ax2.set_ylim(0, 3)
+        ax2.set_yticks([0, 1, 2, 3])
+        ax2.set_yticklabels(['0', '1 (Low)', '2 (Moderate)', '3 (High)'])
+        
+        fig2.patch.set_alpha(0.0)
+        ax2.set_facecolor((0.0, 0.0, 0.0, 0.0))
+        
+        ax2.tick_params(axis='x', colors='white')
+        ax2.tick_params(axis='y', colors='white')
+        for spine in ax2.spines.values():
+            spine.set_color('white')
+            
+        st.pyplot(fig2)
+        st.markdown("---")
         st.subheader("Lesion Segmentation Map")
         st.image(annotated_image, use_container_width=True, caption="Detected Clots Component & Lesion Area")
         
@@ -431,27 +412,81 @@ def main():
         st.markdown("---")
         st.subheader("📄 Export Patient Analysis")
         
+        import datetime
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(200, 10, txt="Brain CT Stroke & Clot Detection Report", ln=True, align='C')
-        pdf.ln(10)
         
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Stroke Prediction: {stroke_pred}", ln=True)
-        pdf.cell(200, 10, txt=f"Stroke Type: {stroke_type}", ln=True)
-        pdf.cell(200, 10, txt=f"Blood Clots Detected: {num_clots}", ln=True)
-        pdf.cell(200, 10, txt=f"Total Lesion Area: {total_lesion_area} px2", ln=True)
-        pdf.cell(200, 10, txt=f"Risk Prediction Level: {risk_level} (Risk Mark: {risk_score}/3)", ln=True)
+        # Header banner
+        pdf.set_fill_color(30, 33, 39)
+        pdf.rect(0, 0, 210, 20, 'F')
+        
+        pdf.set_font("Arial", 'B', 16)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 8, txt="BRAIN CT STROKE & CLOT ANALYSIS REPORT", ln=True, align='C')
+        pdf.ln(12)
+        
+        # Reset text color
+        pdf.set_text_color(0, 0, 0)
+        
+        # General Report Details
+        pdf.set_font("Arial", 'I', 11)
+        pdf.cell(0, 8, txt=f"Date of Analysis: {current_date}", ln=True, align='C')
+        pdf.ln(5)
+        
+        # Diagnostic Results
+        pdf.set_font("Arial", 'B', 14)
+        pdf.set_fill_color(240, 240, 240)
+        pdf.cell(190, 10, txt="  DIAGNOSTIC RESULTS", border=1, ln=True, fill=True)
+        pdf.ln(2)
+        
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(50, 10, txt="Classification: ", ln=False)
+        pdf.set_font("Arial", '', 12)
+        pdf.cell(140, 10, txt=f"{stroke_pred}", ln=True)
+        
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(50, 10, txt="Stroke Type: ", ln=False)
+        pdf.set_font("Arial", '', 12)
+        pdf.cell(140, 10, txt=f"{stroke_type}", ln=True)
+        
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(50, 10, txt="Risk Level: ", ln=False)
+        pdf.set_font("Arial", 'B', 12)
+        
+        # Color coding risk in PDF
+        if "HIGH" in risk_level.upper():
+            pdf.set_text_color(220, 0, 0)
+        elif "MODERATE" in risk_level.upper():
+            pdf.set_text_color(255, 140, 0)
+        else:
+            pdf.set_text_color(0, 150, 0)
+            
+        pdf.cell(140, 10, txt=f"{risk_level.upper()}", ln=True)
+        pdf.set_text_color(0, 0, 0) # reset
+        
+        pdf.ln(5)
+        
+        # Segmentation details
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(190, 10, txt="  CLOT & LESION METRICS", border=1, ln=True, fill=True)
+        pdf.ln(2)
+        
+        pdf.set_font("Arial", '', 12)
+        pdf.cell(190, 8, txt=f"Total Clots Detected: {num_clots}", ln=True)
+        pdf.cell(190, 8, txt=f"Total Lesion Area: {total_lesion_area} px sq", ln=True)
         
         if num_clots > 0:
-            pdf.ln(5)
-            pdf.set_font("Arial", 'B', 12)
-            pdf.cell(200, 10, txt="Individual Clot Sizes:", ln=True)
-            pdf.set_font("Arial", size=12)
-            for text_line in lesion_area_str.replace("<br>", "\\n").split("\\n"):
+            pdf.ln(2)
+            pdf.cell(190, 8, txt="Breakdown by individual clot:", ln=True)
+            for text_line in lesion_area_str.replace("<br>", "\n").split("\n"):
                 if text_line.strip():
-                    pdf.cell(200, 8, txt=f"- {text_line.strip()}", ln=True)
+                    pdf.cell(190, 6, txt=f"   > {text_line.strip()}", ln=True)
+                    
+        pdf.ln(15)
+        pdf.set_font("Arial", 'I', 10)
+        pdf.cell(0, 10, "Disclaimer: This is an AI-generated report and should be reviewed by a certified radiologist.", align='C')
                     
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
             pdf.output(tmp.name)
