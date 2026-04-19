@@ -1,10 +1,10 @@
-streamlit
 torch
 torchvision
 numpy
 pandas
-opencv-python-headless==4.8.1.78
 Pillow
+streamlit
 tqdm
+opencv-python-headless
 matplotlib
 gdown
