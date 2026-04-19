@@ -378,33 +378,7 @@ def main():
                 
             st.markdown("---")
             
-        # --- BAR CHART FOR RISK ANALYSIS ---
-        st.subheader("📈 Risk Level Analysis (Bar Chart)")
-        
-        fig2, ax2 = plt.subplots(figsize=(6, 3))
-        
-        if risk_score == 3:
-            bar_color = '#ff4b4b'
-        elif risk_score == 2:
-            bar_color = '#ffa421'
-        else:
-            bar_color = '#008f51'
-            
-        ax2.bar(['Risk Level'], [risk_score], color=bar_color, width=0.3)
-        ax2.set_ylim(0, 3)
-        ax2.set_yticks([0, 1, 2, 3])
-        ax2.set_yticklabels(['0', '1 (Low)', '2 (Moderate)', '3 (High)'])
-        
-        fig2.patch.set_alpha(0.0)
-        ax2.set_facecolor((0.0, 0.0, 0.0, 0.0))
-        
-        ax2.tick_params(axis='x', colors='white')
-        ax2.tick_params(axis='y', colors='white')
-        for spine in ax2.spines.values():
-            spine.set_color('white')
-            
-        st.pyplot(fig2)
-        st.markdown("---")
+
         st.subheader("Lesion Segmentation Map")
         st.image(annotated_image, use_container_width=True, caption="Detected Clots Component & Lesion Area")
         
