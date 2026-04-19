@@ -1,11 +1,9 @@
+streamlit
 torch
 torchvision
 numpy
 pandas
-opencv-python
-Pillow
-streamlit
-tqdm
 opencv-python-headless
-matplotlib
+Pillow
 gdown
+matplotlib
